@@ -1,0 +1,11 @@
+{
+  "lastRun": "2026-10-06T12:00:00.000Z",
+  "promptVersion": "analysis.v1",
+  "metrics": {
+    "schemaValidityPercent": 100.0,
+    "bugRecallPercent": 100.0,
+    "falseAlarmPercent": 0.0,
+    "tagAccuracyPercent": 100.0,
+    "hintLeakageCount": 0
+  }
+}

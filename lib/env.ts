@@ -37,7 +37,7 @@ const envSchema = z.object({
   GITHUB_CLIENT_ID: z.string().default('mock-github-client-id'),
   GITHUB_CLIENT_SECRET: z.string().default('mock-github-client-secret'),
   GEMINI_API_KEY: z.string().default(''),
-  GEMINI_MODEL: z.string().default('gemini-1.5-flash'),
+  GEMINI_MODEL: z.string().default('gemini-3.8-flash'),
   AI_ENABLED: z
     .string()
     .transform((val) => val === 'true' || val === '1')

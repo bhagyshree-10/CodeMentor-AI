@@ -1,4 +1,4 @@
-import { runHintPipeline } from './ai/hint-pipeline';
+import { runHintPipeline, runAttemptEvaluationPipeline } from './ai/hint-pipeline';
 import { createInitialHintState, advanceHintLevel, addAttemptFeedback } from './ai/hint-state';
 import { AnalysesRepository } from '../models/analyses.repo';
 import { UsersRepository } from '../models/users.repo';
@@ -24,52 +24,36 @@ export class HintService {
     language?: any,
     attempt?: string
   ) {
-    const storeCode = await UsersRepository.getStoreCodeSetting(userId);
-    await QuotaService.reserveHintQuota(userId);
+    const sessionState = createInitialHintState(problem);
+    const title = problem.split('\n')[0].substring(0, 80) || 'DSA Problem Hint';
 
-    try {
-      const hintEntry = await runHintPipeline({
-        level: 1,
-        problem,
-        attempt: storeCode ? attempt : undefined,
-      });
+    const doc = await AnalysesRepository.create({
+      userId,
+      kind: 'hint',
+      title,
+      language: language || 'python',
+      code: attempt,
+      codeLineCount: attempt ? attempt.split('\n').length : 0,
+      mistakeTags: [],
+      hintSession: sessionState,
+      meta: {
+        model: env.GEMINI_MODEL,
+        promptVersion: 'hint.v1',
+        schemaVersion: 1,
+        aiCalls: 0,
+        repaired: false,
+      },
+    });
 
-      const sessionState = createInitialHintState(problem);
-      const updatedState = advanceHintLevel(sessionState, hintEntry);
+    const quota = await QuotaService.getUserUsage(userId);
 
-      const title = problem.split('\n')[0].substring(0, 80) || 'DSA Problem Hint';
-
-      const doc = await AnalysesRepository.create({
-        userId,
-        kind: 'hint',
-        title,
-        language: language || 'python',
-        codeLineCount: attempt ? attempt.split('\n').length : 0,
-        mistakeTags: [],
-        hintSession: updatedState,
-        meta: {
-          model: env.GEMINI_MODEL,
-          promptVersion: 'hint.v1',
-          schemaVersion: 1,
-          aiCalls: 1,
-          repaired: false,
-        },
-      });
-
-      await QuotaService.releaseHintLock(userId, false);
-      const quota = await QuotaService.getUserUsage(userId);
-
-      return {
-        analysisId: doc._id.toString(),
-        currentLevel: updatedState.currentLevel,
-        status: updatedState.status,
-        entry: hintEntry,
-        quota,
-      };
-    } catch (err) {
-      await QuotaService.releaseHintLock(userId, true);
-      throw err;
-    }
+    return {
+      analysisId: doc._id.toString(),
+      currentLevel: 0,
+      status: sessionState.status,
+      entries: [],
+      quota,
+    };
   }
 
   private static async nextHint(userId: string, analysisId: string) {
@@ -91,6 +75,7 @@ export class HintService {
         level: targetLevel,
         problem: currentState.problem,
         previousEntries: currentState.entries,
+        attempt: sessionDoc.code,
       });
 
       const updatedState = advanceHintLevel(currentState, hintEntry);
@@ -104,6 +89,7 @@ export class HintService {
         currentLevel: updatedState.currentLevel,
         status: updatedState.status,
         entry: hintEntry,
+        entries: updatedState.entries,
         quota,
       };
     } catch (err) {
@@ -113,6 +99,10 @@ export class HintService {
   }
 
   private static async submitAttempt(userId: string, analysisId: string, attempt: string) {
+    if (!attempt || !attempt.trim()) {
+      throw new AppError('VALIDATION_ERROR', 'Attempt text is required');
+    }
+
     const sessionDoc = await AnalysesRepository.getById(analysisId, userId);
     if (!sessionDoc || sessionDoc.kind !== 'hint' || !sessionDoc.hintSession) {
       throw new AppError('NOT_FOUND', 'Hint session not found');
@@ -122,16 +112,18 @@ export class HintService {
     await QuotaService.reserveHintQuota(userId);
 
     try {
-      const feedbackContent = {
-        feedback: `Attempt evaluated at Level ${currentState.currentLevel}. Keep focusing on the core observation.`,
-        guidingQuestion: 'What edge cases or constraints are missing from your attempt logic?',
-      };
+      const feedbackContent = await runAttemptEvaluationPipeline({
+        problem: currentState.problem,
+        level: Math.max(currentState.currentLevel, 1),
+        attempt: attempt.trim(),
+        language: sessionDoc.language,
+      });
 
       const feedbackEntry = {
         level: currentState.currentLevel,
         type: 'attempt-feedback' as const,
         content: feedbackContent,
-        attemptText: attempt,
+        attemptText: attempt.trim(),
         createdAt: new Date(),
       };
 

@@ -33,6 +33,7 @@ export function WorkspaceShell() {
   const [intent, setIntent] = useState<AnalysisIntent>('understand');
   const [context, setContext] = useState('');
   const [isAutoDetected, setIsAutoDetected] = useState(false);
+  const [isManuallySelected, setIsManuallySelected] = useState(false);
   const [highlightLines, setHighlightLines] = useState<{ start: number; end: number } | null>(null);
 
   const { data: analyzeData, loading: analyzeLoading, error: analyzeError, analyzeCode } = useAnalyze();
@@ -50,13 +51,15 @@ export function WorkspaceShell() {
     submitAttempt,
   } = useHintSession();
 
-  // Auto-detect language on code change if user hasn't overridden manually
+  // Auto-detect language ONLY if the user has not manually selected one
   const handleCodeChange = (newCode: string) => {
     setCode(newCode);
-    const detection = detectLanguage(newCode);
-    if (detection.language && detection.confidence !== 'low') {
-      setLanguage(detection.language);
-      setIsAutoDetected(true);
+    if (!isManuallySelected) {
+      const detection = detectLanguage(newCode);
+      if (detection.language && detection.confidence !== 'low') {
+        setLanguage(detection.language);
+        setIsAutoDetected(true);
+      }
     }
   };
 
@@ -151,6 +154,7 @@ export function WorkspaceShell() {
                   value={language}
                   onChange={(l) => {
                     setLanguage(l);
+                    setIsManuallySelected(true);
                     setIsAutoDetected(false);
                   }}
                   isAutoDetected={isAutoDetected}

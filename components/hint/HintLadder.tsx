@@ -23,12 +23,18 @@ const RUNG_TITLES: Record<number, string> = {
 
 export function HintLadder({
   problem,
-  currentLevel,
+  currentLevel: propCurrentLevel,
   entries,
   onRevealNext,
   onSubmitAttempt,
   isLoading,
 }: HintLadderProps) {
+  // Use entries to derive the highest revealed level as the single source of truth
+  const revealedHints = entries.filter((e) => e.type === 'hint');
+  const highestRevealedLevel = revealedHints.reduce((max, h) => Math.max(max, h.level), 0);
+  const currentLevel = Math.max(propCurrentLevel ?? 0, highestRevealedLevel);
+  const isAllRevealed = currentLevel >= 4;
+
   const getEntryForLevel = (level: number) => {
     return entries.find((e) => e.level === level && e.type === 'hint');
   };
@@ -54,11 +60,21 @@ export function HintLadder({
             title={RUNG_TITLES[level]}
             currentLevel={currentLevel}
             entry={getEntryForLevel(level)}
-            onRevealNext={level === currentLevel ? onRevealNext : undefined}
+            onRevealNext={onRevealNext}
             isLoading={isLoading}
           />
         ))}
       </div>
+
+      {/* All Hints Revealed Completion Banner */}
+      {isAllRevealed && (
+        <div className="p-4 my-4 bg-accent-tint border border-accent/30 rounded-DEFAULT text-center animate-fadeIn">
+          <p className="text-sm font-semibold text-accent-strong">All hints revealed</p>
+          <p className="text-xs text-text-muted mt-1">
+            You&apos;ve unlocked all four progressive hints. Try implementing your full solution now!
+          </p>
+        </div>
+      )}
 
       {/* Feedback entries list if user submitted attempts */}
       {feedbackEntries.length > 0 && (

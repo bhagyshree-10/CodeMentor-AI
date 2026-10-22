@@ -1,12 +1,12 @@
 import { AnalysesRepository } from '../models/analyses.repo';
-import { DEMO_USER } from '../lib/session';
+const DEMO_SEED_USER_ID = 'demo_user_seed';
 
 async function main() {
   console.log('🌱 Seeding demo history for interview demonstration...');
 
   const demoItems = [
     {
-      userId: DEMO_USER.id,
+      userId: DEMO_SEED_USER_ID,
       kind: 'analysis' as const,
       title: 'Nested Loop Array Lookup Optimization',
       language: 'python' as const,
@@ -54,7 +54,7 @@ async function main() {
       meta: { model: 'gemini-1.5-flash', promptVersion: 'analysis.v1', schemaVersion: 1, aiCalls: 1, repaired: false },
     },
     {
-      userId: DEMO_USER.id,
+      userId: DEMO_SEED_USER_ID,
       kind: 'analysis' as const,
       title: 'Off-by-One Range Boundary Bug',
       language: 'python' as const,
@@ -102,7 +102,7 @@ async function main() {
       meta: { model: 'gemini-1.5-flash', promptVersion: 'analysis.v1', schemaVersion: 1, aiCalls: 1, repaired: false },
     },
     {
-      userId: DEMO_USER.id,
+      userId: DEMO_SEED_USER_ID,
       kind: 'analysis' as const,
       title: 'Missing Null Check Before Property Access',
       language: 'javascript' as const,

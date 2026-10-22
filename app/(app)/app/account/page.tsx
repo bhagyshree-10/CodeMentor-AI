@@ -6,7 +6,8 @@ import { Dialog } from '@/components/ui/Dialog';
 import { Input } from '@/components/ui/Input';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { ErrorState } from '@/components/ui/ErrorState';
-import { User, Shield, AlertTriangle, Check } from 'lucide-react';
+import { User, Shield, AlertTriangle, Check, LogOut } from 'lucide-react';
+import { signOut } from '@/lib/auth-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -115,9 +116,23 @@ export default function AccountPage() {
 
       {/* 1. Profile Section */}
       <section className="flex flex-col gap-3 pb-6 border-b border-border">
-        <div className="flex items-center gap-2 text-xs font-semibold text-text-muted uppercase tracking-wider">
-          <User className="w-4 h-4" />
-          <span>Profile</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs font-semibold text-text-muted uppercase tracking-wider">
+            <User className="w-4 h-4" />
+            <span>Profile</span>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={async () => {
+              await signOut();
+              window.location.href = '/login';
+            }}
+            className="text-xs gap-1.5"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sign Out</span>
+          </Button>
         </div>
         <div className="flex items-center gap-4 pt-1">
           <div className="w-12 h-12 rounded-full bg-accent-tint text-accent-strong flex items-center justify-center font-bold text-lg">

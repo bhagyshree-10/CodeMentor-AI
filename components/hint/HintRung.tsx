@@ -22,9 +22,9 @@ export function HintRung({
   onRevealNext,
   isLoading,
 }: HintRungProps) {
-  const isRevealed = level < currentLevel || (level === currentLevel && !!entry);
-  const isCurrent = level === currentLevel && !entry;
-  const isLocked = level > currentLevel;
+  const isRevealed = !!entry;
+  const isNextToReveal = !entry && level === currentLevel + 1;
+  const isLocked = !entry && level > currentLevel + 1;
 
   const content = entry?.content as any;
 
@@ -36,7 +36,7 @@ export function HintRung({
           className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-mono font-bold transition-all z-10 ${
             isRevealed
               ? 'bg-text text-bg'
-              : isCurrent
+              : isNextToReveal
               ? 'bg-bg text-accent border-2 border-accent ring-4 ring-accent/20'
               : 'bg-surface-muted text-text-disabled border border-border'
           }`}
@@ -46,7 +46,7 @@ export function HintRung({
         {level < 4 && (
           <div
             className={`w-0.5 flex-1 my-1 ${
-              level < currentLevel ? 'bg-text' : 'border-l-2 border-dashed border-border'
+              level <= currentLevel ? 'bg-text' : 'border-l-2 border-dashed border-border'
             }`}
           />
         )}
@@ -118,7 +118,7 @@ export function HintRung({
           </div>
         )}
 
-        {isCurrent && onRevealNext && (
+        {isNextToReveal && onRevealNext && (
           <div className="my-2">
             <Button variant="primary" size="md" onClick={onRevealNext} isLoading={isLoading} className="gap-2">
               <span>Reveal hint {level} of 4</span>

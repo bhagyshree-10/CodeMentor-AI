@@ -5,27 +5,21 @@ import { HintLadder } from '../hint/HintLadder';
 import { HintEntry } from '../../schemas/hint';
 
 export function HintLadderDemo() {
-  const [currentLevel, setCurrentLevel] = useState(1);
-  const [entries, setEntries] = useState<HintEntry[]>([
-    {
-      level: 1,
-      type: 'hint',
-      content: {
+  const [currentLevel, setCurrentLevel] = useState(0);
+  const [entries, setEntries] = useState<HintEntry[]>([]);
+
+  const handleReveal = async () => {
+    if (currentLevel >= 4) return;
+    const nextLvl = (currentLevel + 1) as 1 | 2 | 3 | 4;
+
+    const mockContent: Record<number, any> = {
+      1: {
         restatement: 'Given an array of integers and a target sum, return the indices of two numbers that add up to the target.',
         constraints: ['Array length 2..10^4', 'Exactly one valid solution exists'],
         clarifyingQuestions: ['Is array sorted?', 'Can the same element be used twice?'],
         workedExample: 'nums = [2, 7, 11], target = 9 -> [0, 1]',
         edgeCasesToConsider: ['Empty or 1-element array', 'Negative target'],
       },
-      createdAt: new Date(),
-    },
-  ]);
-
-  const handleReveal = async () => {
-    if (currentLevel >= 4) return;
-    const nextLvl = (currentLevel + 1) as 2 | 3 | 4;
-
-    const mockContent: Record<number, any> = {
       2: {
         observation: 'For any number x in the array, you are looking for target - x.',
         guidingQuestion: 'How can you keep track of numbers you have already seen?',

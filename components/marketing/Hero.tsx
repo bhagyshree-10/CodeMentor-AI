@@ -3,28 +3,24 @@
 import React from 'react';
 import Link from 'next/link';
 import { Button } from '../ui/Button';
-import { ArrowRight, Code2 } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import { AnimatedWhy } from './AnimatedWhy';
 
 export function Hero() {
   return (
     <section className="py-20 px-6 max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-12">
       <div className="flex-1 flex flex-col items-start gap-6">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-tint text-accent-strong text-xs font-medium">
-          <Code2 className="w-3.5 h-3.5" />
-          <span>The AI Learning Studio for Code</span>
-        </div>
-
         <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-text leading-tight">
           Don&apos;t just fix your code. <span className="text-accent-strong">Understand it.</span>
         </h1>
 
         <p className="text-lg text-text-muted leading-relaxed max-w-xl">
-          Paste your code. See what it does, where it breaks, <strong className="text-text">why</strong> it breaks, and what to remember.
+          Paste your code. See what it does, where it breaks, <AnimatedWhy /> it breaks, and what to remember.
           For students and developers who want to learn from their own code.
         </p>
 
         <div className="flex items-center gap-4 pt-2">
-          <Link href="/app">
+          <Link href="/login">
             <Button size="lg" className="gap-2">
               <span>Sign in to start</span>
               <ArrowRight className="w-4 h-4" />

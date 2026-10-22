@@ -24,7 +24,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
             Sample Report
           </a>
           <ThemeToggle />
-          <Link href="/app">
+          <Link href="/login">
             <Button size="sm">Sign in</Button>
           </Link>
         </nav>

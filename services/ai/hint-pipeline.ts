@@ -11,6 +11,7 @@ import {
 import { validateHintLeakage } from './validators/hint-leakage';
 import { attemptRepair } from './repair';
 import { AppError } from '../../lib/errors';
+import { z } from 'zod';
 
 export interface HintPipelineOptions {
   level: number;
@@ -91,4 +92,64 @@ export async function runHintPipeline(options: HintPipelineOptions): Promise<Hin
     content: parsed.data!,
     createdAt: new Date(),
   };
+}
+
+export interface AttemptEvaluationOptions {
+  problem: string;
+  level: number;
+  attempt: string;
+  language?: string;
+  signal?: AbortSignal;
+}
+
+const AttemptFeedbackSchema = z.object({
+  feedback: z.string().min(10).max(1500),
+  guidingQuestion: z.string().min(5).max(500),
+});
+
+export async function runAttemptEvaluationPipeline(options: AttemptEvaluationOptions): Promise<{
+  feedback: string;
+  guidingQuestion: string;
+}> {
+  const cleanProblem = sanitizeUserInput(options.problem);
+  const cleanAttempt = sanitizeUserInput(options.attempt);
+  const lang = options.language || 'the chosen language';
+
+  const systemInstruction = `You are CodeMentor AI, evaluating a student's attempt to solve a DSA problem.
+The learner is currently at Hint Level ${options.level} of 4.
+Rules:
+1. Objectively evaluate their attempt against the problem: "${cleanProblem}".
+2. State what parts of their reasoning or code are correct or on the right track.
+3. Identify specific flaws, misconceptions, syntax errors, or unhandled edge cases in their attempt.
+4. Provide a focused guiding question that prompts them toward the next step.
+5. NEVER reveal the full solution, write complete code, or jump ahead to later hint levels.
+6. The feedback must refer to ${lang} if code was submitted.
+7. Return JSON matching:
+{
+  "feedback": "Concise review of the attempt explaining what is sound and what is broken/missing.",
+  "guidingQuestion": "A targeted question prompting the next improvement."
+}`;
+
+  const userPrompt = `PROBLEM:
+${cleanProblem}
+
+STUDENT ATTEMPT:
+${cleanAttempt}
+
+Evaluate this attempt and output the JSON response.`;
+
+  const res = await generateJson({
+    systemInstruction,
+    userPrompt,
+    temperature: 0.3,
+    maxOutputTokens: 600,
+    signal: options.signal,
+  });
+
+  const parsed = AttemptFeedbackSchema.safeParse(res.jsonObj);
+  if (!parsed.success) {
+    throw new AppError('AI_INVALID_OUTPUT', 'Attempt evaluation output was not in expected schema format');
+  }
+
+  return parsed.data;
 }

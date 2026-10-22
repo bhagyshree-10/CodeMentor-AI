@@ -49,7 +49,7 @@ export type HintEntry = z.infer<typeof HintEntrySchema>;
 
 export const HintSessionSchema = z.object({
   problem: z.string(),
-  currentLevel: z.number().int().min(1).max(4),
+  currentLevel: z.number().int().min(0).max(4),
   status: z.enum(['active', 'completed']),
   entries: z.array(HintEntrySchema),
 });

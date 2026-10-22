@@ -57,7 +57,23 @@ export class UsageRepository {
           return { success: false, reason: 'QUOTA_EXCEEDED' };
         }
 
-        // 2. Atomic user quota reservation + in-flight lock
+        // 2. Ensure user doc exists
+        await col.updateOne(
+          { _id: userDocId },
+          {
+            $setOnInsert: {
+              userId,
+              day: today,
+              analyses: 0,
+              hints: 0,
+              inFlightUntil: null,
+              expiresAt,
+            },
+          },
+          { upsert: true }
+        );
+
+        // 3. Atomic user quota reservation + in-flight lock
         const filter = {
           _id: userDocId,
           [kind]: { $lt: userLimit },
@@ -66,36 +82,31 @@ export class UsageRepository {
 
         const update = {
           $inc: { [kind]: 1 },
-          $set: { inFlightUntil: lockExpiry, day: today, userId },
-          $setOnInsert: { expiresAt, analyses: 0, hints: 0 },
+          $set: { inFlightUntil: lockExpiry },
         };
 
-        try {
-          const res = await col.findOneAndUpdate(filter, update, { upsert: true, returnDocument: 'after' });
-          if (res) {
-            // Also increment global doc
-            await col.updateOne(
-              { _id: globalDocId },
-              { $inc: { [kind]: 1 }, $setOnInsert: { day: today, expiresAt, analyses: 0, hints: 0 } },
-              { upsert: true }
-            );
-            return { success: true };
-          }
-        } catch (err: any) {
-          // If upsert failed due to duplicate key, query existing document to diagnose reason
-          if (err.code === 11000) {
-            const existing = await col.findOne({ _id: userDocId });
-            if (existing) {
-              if (existing.inFlightUntil && existing.inFlightUntil > now) {
-                return { success: false, reason: 'REQUEST_IN_PROGRESS' };
-              }
-              if (existing[kind] >= userLimit) {
-                return { success: false, reason: 'QUOTA_EXCEEDED' };
-              }
-            }
-          }
-          return { success: false, reason: 'QUOTA_EXCEEDED' };
+        const res = await col.findOneAndUpdate(filter, update, { returnDocument: 'after' });
+        if (res) {
+          // Also increment global doc
+          await col.updateOne(
+            { _id: globalDocId },
+            { $inc: { [kind]: 1 }, $setOnInsert: { day: today, expiresAt } },
+            { upsert: true }
+          );
+          return { success: true };
         }
+
+        // If reservation failed, diagnose whether in-flight or quota exceeded
+        const existing = await col.findOne({ _id: userDocId });
+        if (existing) {
+          if (existing.inFlightUntil && existing.inFlightUntil > now) {
+            return { success: false, reason: 'REQUEST_IN_PROGRESS' };
+          }
+          if (existing[kind] >= userLimit) {
+            return { success: false, reason: 'QUOTA_EXCEEDED' };
+          }
+        }
+        return { success: false, reason: 'QUOTA_EXCEEDED' };
       } catch {
         // Fallback
       }

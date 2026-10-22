@@ -5,7 +5,8 @@ export interface HintResponseData {
   analysisId: string;
   currentLevel: number;
   status: 'active' | 'completed';
-  entry: HintEntry;
+  entry?: HintEntry;
+  entries?: HintEntry[];
   quota: {
     hintsUsed: number;
     hintsLimit: number;
@@ -15,10 +16,17 @@ export interface HintResponseData {
 
 export function useHintSession() {
   const [analysisId, setAnalysisId] = useState<string | null>(null);
-  const [currentLevel, setCurrentLevel] = useState<number>(1);
+  const [currentLevel, setCurrentLevel] = useState<number>(0);
   const [entries, setEntries] = useState<HintEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const resetSession = () => {
+    setAnalysisId(null);
+    setCurrentLevel(0);
+    setEntries([]);
+    setError(null);
+  };
 
   const startSession = async (problem: string, language?: string, attempt?: string) => {
     setLoading(true);
@@ -35,8 +43,8 @@ export function useHintSession() {
       }
       const data: HintResponseData = json.data;
       setAnalysisId(data.analysisId);
-      setCurrentLevel(data.currentLevel);
-      setEntries([data.entry]);
+      setCurrentLevel(data.currentLevel ?? 0);
+      setEntries(data.entries || (data.entry ? [data.entry] : []));
       return data;
     } catch (err: any) {
       setError(err.message || 'Error starting hint session');
@@ -62,7 +70,14 @@ export function useHintSession() {
       }
       const data: HintResponseData = json.data;
       setCurrentLevel(data.currentLevel);
-      setEntries((prev) => [...prev, data.entry]);
+      if (data.entries) {
+        setEntries(data.entries);
+      } else if (data.entry) {
+        setEntries((prev) => {
+          const exists = prev.some((e) => e.level === data.entry!.level && e.type === data.entry!.type);
+          return exists ? prev : [...prev, data.entry!];
+        });
+      }
       return data;
     } catch (err: any) {
       setError(err.message || 'Error revealing next hint');
@@ -87,7 +102,9 @@ export function useHintSession() {
         throw new Error(json?.error?.message || 'Failed to submit attempt');
       }
       const data: HintResponseData = json.data;
-      setEntries((prev) => [...prev, data.entry]);
+      if (data.entry) {
+        setEntries((prev) => [...prev, data.entry!]);
+      }
       return data;
     } catch (err: any) {
       setError(err.message || 'Error submitting attempt');
@@ -106,6 +123,7 @@ export function useHintSession() {
     startSession,
     revealNext,
     submitAttempt,
+    resetSession,
     setAnalysisId,
     setCurrentLevel,
     setEntries,

@@ -37,7 +37,7 @@ export async function runAnalysisPipeline(options: AnalysisPipelineOptions): Pro
   const fence = buildCodeFence(options.code);
   const cleanContext = options.context ? sanitizeUserInput(options.context) : undefined;
 
-  const systemInstruction = buildAnalysisSystemInstruction();
+  const systemInstruction = buildAnalysisSystemInstruction(options.language);
   const userPrompt = buildAnalysisUserPrompt({
     language: options.language,
     intent: options.intent,
